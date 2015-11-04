@@ -9,7 +9,7 @@ Supported validations:
 
 - User logged in
 - User is in given role
-- User is the "owner" of document, or similar - ca be overwritten by specific roles, e.g. admin/moderator-roles.
+- User is the "owner" of a document, or similar - can be overwritten by specific roles.
 
 ## Examples
 
