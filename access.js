@@ -1,9 +1,32 @@
-Access = function Access() {
+Access = function Access(quiet) {
 
   // holds the currently active user
   var user;
   // holds the current collection document
   var doc;
+
+  // hold failed state when quiet is true
+  var failed = false;
+  var error = null;
+
+  function arg(obj, type) {
+    if (failed) return true;
+    if (quiet) {
+      failed = !Match.test(obj, type);
+      return failed;
+    } else {
+      check(obj, type);
+    }
+  }
+
+  function fail(status, message) {
+    error = new Meteor.Error(status, message);
+    if (quiet) {
+      failed = true;
+    } else {
+      throw error;
+    }
+  }
 
   // wraps all chainable methods
   var chain = {};
@@ -12,10 +35,10 @@ Access = function Access() {
    * Requires the given userId to be valid and stores the corresponding user for subsequent calls.
    * @param {String} userId
    */
-  chain.from = function from(userId) {
-    check(userId, String);
+  chain.from = function accessFrom(userId) {
+    if (arg(userId, String)) return chain;
     user = Meteor.users.findOne(userId);
-    if (!user) throw new Meteor.Error(401, "Unauthorized");
+    if (!user) fail(401, "Unauthorized");
     return chain;
   };
 
@@ -24,10 +47,10 @@ Access = function Access() {
    * @param collection
    * @param id
    */
-  chain.to = function to(collection, id) {
-    check(id, String);
+  chain.to = function accessTo(collection, id) {
+    if (arg(id, String)) return chain;
     doc = collection.findOne(id);
-    if (!doc) throw new Meteor.Error(404, "Not Found");
+    if (!doc) fail(404, "Not Found");
     return chain;
   };
 
@@ -36,21 +59,26 @@ Access = function Access() {
    * @param {String, [String]} roles
    * @param {String} property
    */
-  chain.as = function as(roles, property) {
+  chain.as = function accessAs(roles, property) {
+    if (failed) return chain;
     // check if user is in one of the given roles
     if (roles && Roles.userIsInRole(user._id, roles)) return chain;
     // check if user is the "owner", or whatever the meaning of "property" is
     if (property && doc[property] === user._id) return chain;
     // if none of the above returned the user does not have access
-    throw new Meteor.Error(403, "Forbidden");
+    fail(403, "Forbidden");
   };
 
   /**
    * Returns the document stored by the last call to to().
    * @returns {Object}
    */
-  chain.value = function value() {
+  chain.value = function accessValue() {
     return doc;
+  };
+
+  chain.failed = function accessFailed() {
+    return failed;
   };
 
   return chain;
