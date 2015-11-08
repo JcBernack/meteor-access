@@ -10,17 +10,24 @@ Access = function Access(quiet) {
   var error = null;
 
   function arg(obj, type) {
-    if (failed) return true;
-    if (quiet) {
-      failed = !Match.test(obj, type);
-      return failed;
-    } else {
+    if (failed) return false;
+    try {
       check(obj, type);
+      return true;
+    } catch (e) {
+      err(e);
     }
+    return false;
   }
 
   function fail(status, message) {
-    error = new Meteor.Error(status, message);
+    if (failed) return;
+    err(new Meteor.Error(status, message));
+  }
+
+  function err(e) {
+    if (failed) return;
+    error = e;
     if (quiet) {
       failed = true;
     } else {
@@ -36,8 +43,13 @@ Access = function Access(quiet) {
    * @param {String} userId
    */
   chain.from = function accessFrom(userId) {
-    if (arg(userId, String)) return chain;
-    user = Meteor.users.findOne(userId);
+    // reset a previous user
+    user = undefined;
+    // try to find the user if the id is valid
+    if (userId && arg(userId, String)) {
+      user = Meteor.users.findOne(userId);
+    }
+    // fail if the user was not found or the id was not valid in the first place
     if (!user) fail(401, "Unauthorized");
     return chain;
   };
@@ -48,7 +60,7 @@ Access = function Access(quiet) {
    * @param id
    */
   chain.to = function accessTo(collection, id) {
-    if (arg(id, String)) return chain;
+    if (!arg(id, String)) return chain;
     doc = collection.findOne(id);
     if (!doc) fail(404, "Not Found");
     return chain;
@@ -77,8 +89,20 @@ Access = function Access(quiet) {
     return doc;
   };
 
+  /**
+   * Returns the state of the current access when using quiet mode.
+   * @returns {boolean}
+   */
   chain.failed = function accessFailed() {
     return failed;
+  };
+
+  /**
+   * Returns the first validation error when using quiet mode.
+   * @returns {Meteor.Error}
+   */
+  chain.error = function accessError() {
+    return error;
   };
 
   return chain;
