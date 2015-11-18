@@ -1,14 +1,19 @@
 /**
  * Chainable access validator for meteor.
+ * If the context is given it is used to skip user authentication when the call is initiated by the server.
+ * @param [context] - If given should be the `this` object of a meteor method or publish function.
  * @returns {{Object}}
  * @constructor
  */
-Access = function Access() {
+Access = function Access(context) {
 
   // holds the currently active user
   var user;
   // holds the current collection document
   var doc;
+
+  // always allow server side calls without user or role validation
+  var serverSideCall = context && !context.connection;
 
   function fail(status, message) {
     throw new Meteor.Error(status, message);
@@ -22,6 +27,7 @@ Access = function Access() {
    * @param {String} userId
    */
   chain.from = function accessFrom(userId) {
+    if (serverSideCall) return chain;
     // reset a previous user
     user = undefined;
     // try to find the user if the id is valid
@@ -52,6 +58,7 @@ Access = function Access() {
    * @param {String} [property]
    */
   chain.as = function accessAs(roles, property) {
+    if (serverSideCall) return chain;
     // check if user is in one of the given roles
     if (roles && Roles.userIsInRole(user._id, roles)) return chain;
     // check if user is the "owner", or whatever the meaning of "property" is
