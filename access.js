@@ -1,3 +1,14 @@
+/**
+ * Chainable access validator for meteor.
+ *
+ * Supports two modes:
+ * - Standard: immediately throws an exception if one of the validations fails.
+ * - Quiet: Never throws exceptions, but provides the validation state as a boolean. The first error which occured can also be retrieved.
+ *
+ * @param quiet - Quiet mode, see above.
+ * @returns {{Object}}
+ * @constructor
+ */
 Access = function Access(quiet) {
 
   // holds the currently active user
@@ -5,8 +16,9 @@ Access = function Access(quiet) {
   // holds the current collection document
   var doc;
 
-  // hold failed state when quiet is true
+  // holds failed state in quiet mode
   var failed = false;
+  // holds the first error in quiet mode
   var error = null;
 
   function arg(obj, type) {
@@ -55,7 +67,7 @@ Access = function Access(quiet) {
   };
 
   /**
-   * Gets an item from a collection by id.
+   * Requires the given collection to contain a document with the given id and stores it for subsequent calls.
    * @param collection
    * @param id
    */
@@ -67,9 +79,9 @@ Access = function Access(quiet) {
   };
 
   /**
-   * Requires the current user to be in at least one of the given roles or the given property to contain the users id.
+   * Requires the current user to be in at least one of the given roles or the given property on the current document to contain the users id.
    * @param {String, [String]} roles
-   * @param {String} property
+   * @param {String} [property]
    */
   chain.as = function accessAs(roles, property) {
     if (failed) return chain;
@@ -79,6 +91,7 @@ Access = function Access(quiet) {
     if (property && doc[property] === user._id) return chain;
     // if none of the above returned the user does not have access
     fail(403, "Forbidden");
+    return chain;
   };
 
   /**
