@@ -2,6 +2,10 @@
 
 Simple chainable access validator for Meteor.
 
+Install with
+
+    meteor add jcbernack:access
+
 This validator can be used to reduce boilerplate code when checking for user roles and access to specific collection documents.
 Typical place to use it is in Meteor methods, but it is in no way restricted to that.
 
@@ -14,7 +18,7 @@ Supported validations:
 ## Examples
 
 When writing meteor methods to insert/remove documents in a collection validation can be used to check if the user is actually allowed to do that.
-    
+
     Meteor.methods({
       "stuff.add": function (obj) {
         Access().from(this.userId);
