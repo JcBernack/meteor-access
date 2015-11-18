@@ -1,50 +1,17 @@
 /**
  * Chainable access validator for meteor.
- *
- * Supports two modes:
- * - Standard: immediately throws an exception if one of the validations fails.
- * - Quiet: Never throws exceptions, but provides the validation state as a boolean. The first error which occured can also be retrieved.
- *
- * @param quiet - Quiet mode, see above.
  * @returns {{Object}}
  * @constructor
  */
-Access = function Access(quiet) {
+Access = function Access() {
 
   // holds the currently active user
   var user;
   // holds the current collection document
   var doc;
 
-  // holds failed state in quiet mode
-  var failed = false;
-  // holds the first error in quiet mode
-  var error = null;
-
-  function arg(obj, type) {
-    if (failed) return false;
-    try {
-      check(obj, type);
-      return true;
-    } catch (e) {
-      err(e);
-    }
-    return false;
-  }
-
   function fail(status, message) {
-    if (failed) return;
-    err(new Meteor.Error(status, message));
-  }
-
-  function err(e) {
-    if (failed) return;
-    error = e;
-    if (quiet) {
-      failed = true;
-    } else {
-      throw error;
-    }
+    throw new Meteor.Error(status, message);
   }
 
   // wraps all chainable methods
@@ -58,7 +25,8 @@ Access = function Access(quiet) {
     // reset a previous user
     user = undefined;
     // try to find the user if the id is valid
-    if (userId && arg(userId, String)) {
+    if (userId) {
+      check(userId, String);
       user = Meteor.users.findOne(userId);
     }
     // fail if the user was not found or the id was not valid in the first place
@@ -72,7 +40,7 @@ Access = function Access(quiet) {
    * @param id
    */
   chain.to = function accessTo(collection, id) {
-    if (!arg(id, String)) return chain;
+    check(id, String);
     doc = collection.findOne(id);
     if (!doc) fail(404, "Not Found");
     return chain;
@@ -84,7 +52,6 @@ Access = function Access(quiet) {
    * @param {String} [property]
    */
   chain.as = function accessAs(roles, property) {
-    if (failed) return chain;
     // check if user is in one of the given roles
     if (roles && Roles.userIsInRole(user._id, roles)) return chain;
     // check if user is the "owner", or whatever the meaning of "property" is
@@ -100,22 +67,6 @@ Access = function Access(quiet) {
    */
   chain.value = function accessValue() {
     return doc;
-  };
-
-  /**
-   * Returns the state of the current access when using quiet mode.
-   * @returns {boolean}
-   */
-  chain.failed = function accessFailed() {
-    return failed;
-  };
-
-  /**
-   * Returns the first validation error when using quiet mode.
-   * @returns {Meteor.Error}
-   */
-  chain.error = function accessError() {
-    return error;
   };
 
   return chain;
