@@ -2,8 +2,6 @@
 
 Simple chainable access validator for Meteor.
 
-Install with
-
     meteor add jcbernack:access
 
 This validator can be used to reduce boilerplate code when checking for user roles and access to specific collection documents.

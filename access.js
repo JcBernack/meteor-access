@@ -2,7 +2,7 @@
  * Chainable access validator for meteor.
  * If the context is given it is used to skip user authentication when the call is initiated by the server.
  * @param [context] - If given should be the `this` object of a meteor method or publish function.
- * @returns {{Object}}
+ * @returns {Access}
  * @constructor
  */
 Access = function Access(context) {
@@ -25,6 +25,7 @@ Access = function Access(context) {
   /**
    * Requires the given userId to be valid and stores the corresponding user for subsequent calls.
    * @param {String} userId
+   * @returns {Access}
    */
   chain.from = function accessFrom(userId) {
     if (serverSideCall) return chain;
@@ -42,8 +43,9 @@ Access = function Access(context) {
 
   /**
    * Requires the given collection to contain a document with the given id and stores it for subsequent calls.
-   * @param collection
-   * @param id
+   * @param {Mongo.Collection} collection
+   * @param {String} id
+   * @returns {Access}
    */
   chain.to = function accessTo(collection, id) {
     check(id, String);
@@ -56,6 +58,7 @@ Access = function Access(context) {
    * Requires the current user to be in at least one of the given roles or the given property on the current document to contain the users id.
    * @param {String, [String]} roles
    * @param {String} [property]
+   * @returns {Access}
    */
   chain.as = function accessAs(roles, property) {
     if (serverSideCall) return chain;
