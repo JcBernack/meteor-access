@@ -1,6 +1,6 @@
 Package.describe({
   name: "jcbernack:access",
-  version: "0.8.0",
+  version: "0.9.0",
   // Brief, one-line summary of the package.
   summary: "Simple chainable access validator.",
   // URL to the Git repository containing the source code for this package.
@@ -17,5 +17,5 @@ Package.onUse(function(api) {
   api.use("accounts-base");
   api.use("alanning:roles@1.2.14");
   api.addFiles("access.js");
-  api.export("Access")
+  api.export("Access");
 });

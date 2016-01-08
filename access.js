@@ -1,3 +1,12 @@
+function getNestedProperty(object, string) {
+  string.split(".").every(function (property) {
+    if (!object) return false;
+    object = object[property];
+    return true;
+  });
+  return object;
+}
+
 /**
  * Chainable access validator for meteor.
  * If the context is given it is used to skip user authentication when the call is initiated by the server.
@@ -14,10 +23,6 @@ Access = function Access(context) {
 
   // always allow server side calls without user or role validation
   var serverSideCall = context && !context.connection;
-
-  function fail(status, message) {
-    throw new Meteor.Error(status, message);
-  }
 
   // wraps all chainable methods
   var chain = {};
@@ -37,7 +42,7 @@ Access = function Access(context) {
       user = Meteor.users.findOne(userId);
     }
     // fail if the user was not found or the id was not valid in the first place
-    if (!user) fail(401, "Unauthorized");
+    if (!user) throw new Meteor.Error(401, "Unauthorized");
     return chain;
   };
 
@@ -48,9 +53,11 @@ Access = function Access(context) {
    * @returns {Access}
    */
   chain.to = function accessTo(collection, id) {
-    check(id, String);
+    if (!Match.test(id, String) && !Match.test(id, Mongo.ObjectID)) {
+      throw new Meteor.Error(400, "Id must be String or ObjectID");
+    }
     doc = collection.findOne(id);
-    if (!doc) fail(404, "Not Found");
+    if (!doc) throw new Meteor.Error(404, "Not Found");
     return chain;
   };
 
@@ -65,10 +72,9 @@ Access = function Access(context) {
     // check if user is in one of the given roles
     if (roles && Roles.userIsInRole(user._id, roles)) return chain;
     // check if user is the "owner", or whatever the meaning of "property" is
-    if (property && doc[property] === user._id) return chain;
+    if (property && getNestedProperty(doc, property) === user._id) return chain;
     // if none of the above returned the user does not have access
-    fail(403, "Forbidden");
-    return chain;
+    throw new Meteor.Error(403, "Forbidden");
   };
 
   /**
